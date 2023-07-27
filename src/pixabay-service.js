@@ -7,6 +7,7 @@ export default class PixabayService {
   constructor() {
     this.searchQuery = '';
     this.page = 1;
+    this.perPageParameter = 40;
   }
 
   async fetchImages() {
@@ -17,17 +18,14 @@ export default class PixabayService {
         image_type: 'photo',
         orientation: 'horizontal',
         safesearch: true,
-        per_page: 40,
+        per_page: this.perPageParameter,
         page: this.page,
       },
-      //   validateStatus: function (status) {
-      //     return status >= 200 && status < 300;
-      //   },
     };
 
-    const response = await axios(BASE_URL, fetchOptions);
+    const { data } = await axios(BASE_URL, fetchOptions);
     this.incrementPage();
-    return response;
+    return data;
   }
 
   incrementPage() {
