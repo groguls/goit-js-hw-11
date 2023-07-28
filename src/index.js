@@ -2,23 +2,30 @@ import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import { Loading } from 'notiflix/build/notiflix-loading-aio';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
-
 import PixabayService from './pixabay-service';
 import LoadMoreBtn from './load-more.btn';
 
 const refs = {
   form: document.querySelector('#search-form'),
   gallery: document.querySelector('.gallery'),
-  moreButton: document.querySelector('.load-more'),
+  guard: document.querySelector('.js-guard'),
 };
+const moreButton = new LoadMoreBtn('.load-more');
+const infinityButton = new LoadMoreBtn('.load-more-infinity');
 const pixabayService = new PixabayService();
-const loadMoreButton = new LoadMoreBtn('.load-more');
 const simplelightbox = new SimpleLightbox('.gallery a');
+
+const observer = new IntersectionObserver(onIntersect, {
+  root: null,
+  rootMargin: '500px',
+  threshold: 0,
+});
 
 let totalImgs = null;
 
 refs.form.addEventListener('submit', onSearchSubmit);
-loadMoreButton.refs.button.addEventListener('click', onMoreButtonClick);
+moreButton.button.addEventListener('click', onMoreButtonClick);
+infinityButton.button.addEventListener('click', onInfinityButtonClick);
 
 function onSearchSubmit(evt) {
   evt.preventDefault();
@@ -43,14 +50,17 @@ function onMoreButtonClick() {
     Notify.warning(
       "We're sorry, but you've reached the end of search results."
     );
-    loadMoreButton.hide();
+    moreButton.hide();
+    infinityButton.hide();
+    observer.unobserve(refs.guard);
     return;
   }
   fetchPictures();
 }
 
 async function fetchPictures() {
-  loadMoreButton.hide();
+  moreButton.hide();
+  infinityButton.hide();
   try {
     Loading.pulse();
     const page = pixabayService.page;
@@ -61,11 +71,13 @@ async function fetchPictures() {
       Notify.warning(
         'Sorry, there are no images matching your search query. Please try again.'
       );
+      Loading.remove();
       return;
     }
 
     if (totalImgs > pixabayService.perPageParameter) {
-      loadMoreButton.show();
+      moreButton.show();
+      infinityButton.show();
     }
 
     paintGallery(images.hits);
@@ -80,7 +92,6 @@ async function fetchPictures() {
   } catch (error) {
     onError(error);
   }
-  Loading.remove();
 }
 
 function smoothScrolling() {
@@ -107,10 +118,9 @@ function createGalleryItemsMarkup(galleryArr) {
         downloads,
       }) => `
       <div class="photo-card">
-        <a href="${largeImageURL}">
-       
+        <a class="thumb" href="${largeImageURL}">
           <img src="${webformatURL}" alt="${tags}" loading="lazy" />
-        
+        </a>
         <div class="info">
             <p class="info-item">
               <b>Likes:</b>
@@ -130,7 +140,6 @@ function createGalleryItemsMarkup(galleryArr) {
             </p>
         </div>
         </a>  
-          
       </div>`
     )
     .join('');
@@ -151,5 +160,18 @@ function onError(error) {
   Notify.failure('Oops! Something went wrong! Try reloading the page!', {
     clickToClose: true,
   });
+  Loading.remove();
   console.log('Error message: ', error);
+}
+
+function onIntersect(entries, observer) {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      onMoreButtonClick();
+    }
+  });
+}
+
+function onInfinityButtonClick() {
+  observer.observe(refs.guard);
 }

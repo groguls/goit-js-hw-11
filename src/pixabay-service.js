@@ -10,8 +10,9 @@ export default class PixabayService {
     this.perPageParameter = 40;
   }
 
-  async fetchImages() {
-    const fetchOptions = {
+  setFetchOptions() {
+    return {
+      url: BASE_URL,
       params: {
         key: API_KEY,
         q: this.searchQuery,
@@ -22,8 +23,10 @@ export default class PixabayService {
         page: this.page,
       },
     };
+  }
 
-    const { data } = await axios(BASE_URL, fetchOptions);
+  async fetchImages() {
+    const { data } = await axios(this.setFetchOptions());
     this.incrementPage();
     return data;
   }
