@@ -45,7 +45,8 @@ function onSearchSubmit(evt) {
 
 function onMoreButtonClick() {
   if (
-    pixabayService.page > Math.ceil(totalImgs / pixabayService.perPageParameter)
+    pixabayService.page >
+    Math.random(totalImgs / pixabayService.perPageParameter)
   ) {
     Notify.warning(
       "We're sorry, but you've reached the end of search results."
@@ -83,6 +84,12 @@ async function fetchPictures() {
     paintGallery(images.hits);
     simplelightbox.refresh();
     Loading.remove();
+
+    if (Math.ceil(totalImgs / pixabayService.perPageParameter) === 1) {
+      Notify.warning(
+        "We're sorry, but you've reached the end of search results."
+      );
+    }
 
     if (page === 1) {
       Notify.success(`Hooray! We found ${totalImgs} images.`);
