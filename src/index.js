@@ -21,10 +21,8 @@ const observer = new IntersectionObserver(onIntersect, {
   threshold: 0,
 });
 
-let totalImgs = null;
-
 refs.form.addEventListener('submit', onSearchSubmit);
-moreButton.button.addEventListener('click', onMoreButtonClick);
+moreButton.button.addEventListener('click', fetchPictures);
 infinityButton.button.addEventListener('click', onInfinityButtonClick);
 
 function onSearchSubmit(evt) {
@@ -43,22 +41,6 @@ function onSearchSubmit(evt) {
   evt.target.reset();
 }
 
-function onMoreButtonClick() {
-  if (
-    pixabayService.page >
-    Math.random(totalImgs / pixabayService.perPageParameter)
-  ) {
-    Notify.warning(
-      "We're sorry, but you've reached the end of search results."
-    );
-    moreButton.hide();
-    infinityButton.hide();
-    observer.unobserve(refs.guard);
-    return;
-  }
-  fetchPictures();
-}
-
 async function fetchPictures() {
   moreButton.hide();
   infinityButton.hide();
@@ -66,7 +48,7 @@ async function fetchPictures() {
     Loading.pulse();
     const page = pixabayService.page;
     const images = await pixabayService.fetchImages();
-    totalImgs = images.totalHits;
+    const totalImgs = images.totalHits;
 
     if (totalImgs <= 0) {
       Notify.warning(
@@ -85,16 +67,23 @@ async function fetchPictures() {
     simplelightbox.refresh();
     Loading.remove();
 
-    if (Math.ceil(totalImgs / pixabayService.perPageParameter) === 1) {
-      Notify.warning(
-        "We're sorry, but you've reached the end of search results."
-      );
-    }
-
     if (page === 1) {
       Notify.success(`Hooray! We found ${totalImgs} images.`);
     } else {
       smoothScrolling();
+    }
+
+    if (
+      pixabayService.page >
+      Math.ceil(totalImgs / pixabayService.perPageParameter)
+    ) {
+      Notify.warning(
+        "We're sorry, but you've reached the end of search results."
+      );
+      moreButton.hide();
+      infinityButton.hide();
+      observer.unobserve(refs.guard);
+      return;
     }
   } catch (error) {
     onError(error);
@@ -174,7 +163,7 @@ function onError(error) {
 function onIntersect(entries, observer) {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
-      onMoreButtonClick();
+      fetchPictures();
     }
   });
 }
